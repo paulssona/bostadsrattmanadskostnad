@@ -40,7 +40,7 @@ for i in range(1, 4):
         property_price = st.number_input(f"Pris {custom_name} (kr):", min_value=0, step=100000, key=f"price_{i}")
 
         # Manuellt inmatningsfält för lånedelen
-        loan_amount = st.number_input(f"Lånedel för {custom_name} (kr):", min_value=0, value=int(property_price * 0.85), step=10000, key=f"loan_amount_{i}")
+        loan_amount = st.number_input(f"Lånedel {custom_name} (kr):", min_value=0, value=int(property_price * 0.85), step=10000, key=f"loan_amount_{i}")
         
         # Beräkna och visa låneandel och handpenning
         loan_percentage = min(85, loan_amount / property_price * 100) if property_price > 0 else 0
