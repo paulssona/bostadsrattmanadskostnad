@@ -21,8 +21,8 @@ def calculate_amortization(loan_percentage, loan_amount):
         return 0
 
 # Layout för Streamlit-appen
-st.title("Bostadsrätt Kostnadsuträkning (3 objekt)")
-st.write("Ange parametrarna för tre objekt för att jämföra månadskostnader.")
+st.title("Bostadsrätt Kostnadsuträkning")
+st.write("Här kan du jämföra månadskostnader när du ska köpa en ny lägenhet.")
 
 # Dictionary för att lagra beräkningar som ska exporteras
 calculations = {}
@@ -37,7 +37,7 @@ for i in range(1, 4):
         custom_name = st.text_input(f"Namn för Objekt {i}", value=f"Objekt {i}")
         
         # Pris på bostaden
-        property_price = st.number_input(f"Pris på bostaden för {custom_name} (kr):", min_value=0, step=100000, key=f"price_{i}")
+        property_price = st.number_input(f"Pris {custom_name} (kr):", min_value=0, step=100000, key=f"price_{i}")
 
         # Manuellt inmatningsfält för lånedelen
         loan_amount = st.number_input(f"Lånedel för {custom_name} (kr):", min_value=0, value=int(property_price * 0.85), step=10000, key=f"loan_amount_{i}")
@@ -53,10 +53,10 @@ for i in range(1, 4):
         amortization_input = st.number_input(f"Amortering för {custom_name} (kr/månad):", min_value=0, value=int(amortization_auto), step=100, key=f"amort_{i}")
 
         # Månadsavgift
-        monthly_fee = st.number_input(f"Månadsavgift för {custom_name} (kr):", min_value=0, step=100, key=f"fee_{i}")
+        monthly_fee = st.number_input(f"Månadsavgift {custom_name} (kr):", min_value=0, step=100, key=f"fee_{i}")
 
         # Räntor för objektet - fem olika räntor på samma rad
-        st.write(f"Räntor för {custom_name} (%)")
+        st.write(f"Räntor {custom_name} (%)")
         cols = st.columns(5)
         
         # Bestäm räntesatser
