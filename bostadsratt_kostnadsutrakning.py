@@ -39,12 +39,12 @@ for i in range(1, 4):
         # Pris på bostaden
         property_price = st.number_input(f"Pris på bostaden för {custom_name} (kr):", min_value=0, step=100000, key=f"price_{i}")
 
-        # Slider för låneandel och beräkning av lånedel
-        loan_percentage = st.slider(f"Låneandel av priset för {custom_name} (%)", min_value=0, max_value=85, value=85, key=f"loan_percentage_{i}")
-        loan_amount = property_price * (loan_percentage / 100)
+        # Manuellt inmatningsfält för lånedelen
+        loan_amount = st.number_input(f"Lånedel för {custom_name} (kr):", min_value=0, value=int(property_price * 0.85), step=10000, key=f"loan_amount_{i}")
         
-        # Visa lånedel baserat på slider och beräkna handpenning
-        st.write(f"Lånedel för {custom_name}: {loan_amount:,.2f} kr ({loan_percentage:.1f}%)")
+        # Beräkna och visa låneandel och handpenning
+        loan_percentage = min(85, loan_amount / property_price * 100) if property_price > 0 else 0
+        st.write(f"Låneandel för {custom_name}: {loan_percentage:.1f}%")
         down_payment = property_price - loan_amount
         st.write(f"Handpenning för {custom_name}: {down_payment:,.2f} kr")
 
