@@ -35,28 +35,21 @@ for i in range(1, 4):
     with st.expander(f"Objekt {i}", expanded=(i == 1)):
         # Anpassningsbart namn
         custom_name = st.text_input(f"Namn för Objekt {i}", value=f"Objekt {i}")
-
+        
         # Pris på bostaden
         property_price = st.number_input(f"Pris på bostaden för {custom_name} (kr):", min_value=0, step=100000, key=f"price_{i}")
 
-        # Inmatningsfält för manuellt lånebelopp och låneandel (procent)
-        loan_amount_manual = st.number_input(f"Manuellt lånebelopp för {custom_name} (kr):", min_value=0, value=int(property_price * 0.85), step=10000, key=f"loan_amount_manual_{i}")
-        loan_percentage = st.slider(f"Låneandel av priset för {custom_name} (%)", min_value=0, max_value=85, value=int(loan_amount_manual / property_price * 100) if property_price > 0 else 85, key=f"loan_percentage_{i}")
+        # Slider för låneandel och beräkning av lånedel
+        loan_percentage = st.slider(f"Låneandel av priset för {custom_name} (%)", min_value=0, max_value=85, value=85, key=f"loan_percentage_{i}")
+        loan_amount = property_price * (loan_percentage / 100)
+        
+        # Visa lånedel baserat på slider och beräkna handpenning
+        st.write(f"Lånedel för {custom_name}: {loan_amount:,.2f} kr ({loan_percentage:.1f}%)")
+        down_payment = property_price - loan_amount
+        st.write(f"Handpenning för {custom_name}: {down_payment:,.2f} kr")
 
-        # Uppdatera låneandel baserat på manuellt inmatat lånebelopp
-        if loan_amount_manual != property_price * (loan_percentage / 100):
-            loan_percentage = min(85, max(0, int(loan_amount_manual / property_price * 100) if property_price > 0 else 0))
-
-        # Uppdatera manuellt lånebelopp baserat på procentuell låneandel
-        new_loan_amount = property_price * (loan_percentage / 100)
-        if loan_amount_manual != new_loan_amount:
-            loan_amount_manual = new_loan_amount
-
-        # Visa den synkroniserade lånedelen och låneandel
-        st.write(f"Lånedel för {custom_name}: {loan_amount_manual:,.2f} kr ({loan_percentage:.1f}%)")
-
-        # Beräkna och visa amortering automatiskt baserat på låneandel
-        amortization_auto = calculate_amortization(loan_percentage, loan_amount_manual)
+        # Amorteringsberäkning och fält
+        amortization_auto = calculate_amortization(loan_percentage, loan_amount)
         amortization_input = st.number_input(f"Amortering för {custom_name} (kr/månad):", min_value=0, value=int(amortization_auto), step=100, key=f"amort_{i}")
 
         # Månadsavgift
@@ -83,7 +76,7 @@ for i in range(1, 4):
         # Beräkna och spara resultaten
         calculations[custom_name] = []
         for j, rate in enumerate(interest_rates_obj1 if i == 1 else interest_rates, start=1):
-            total_cost_before_tax, total_cost_after_tax = calculate_monthly_cost(loan_amount_manual, rate, monthly_fee, amortization_input)
+            total_cost_before_tax, total_cost_after_tax = calculate_monthly_cost(loan_amount, rate, monthly_fee, amortization_input)
             calculations[custom_name].append({
                 "Ränta": rate,
                 "Totalkostnad (före skatteavdrag)": total_cost_before_tax,
