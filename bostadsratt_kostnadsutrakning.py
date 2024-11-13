@@ -1,128 +1,76 @@
 import streamlit as st
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from io import BytesIO
 
-# Funktion för att beräkna månadskostnader
-def calculate_monthly_cost(loan_amount, interest_rate, monthly_fee, amortization):
-    monthly_interest_cost = loan_amount * (interest_rate / 100) / 12
-    total_cost_before_tax = monthly_interest_cost + monthly_fee + amortization
-    tax_deduction = monthly_interest_cost * 0.3
-    total_cost_after_tax = total_cost_before_tax - tax_deduction
-    return total_cost_before_tax, total_cost_after_tax
+def main():
+    st.title("Kostnadsberäkning för Bostadsrätt - Beta 1.1")
 
-# Funktion för att beräkna amortering baserat på låneandel
-def calculate_amortization(loan_percentage, loan_amount):
-    if loan_percentage > 70:
-        return loan_amount * 0.02 / 12
-    elif loan_percentage > 50:
-        return loan_amount * 0.01 / 12
-    else:
-        return 0
+    num_objects = 3  # Antal objekt att jämföra
 
-# Layout för Streamlit-appen
-st.title("Bostadsrätt Kostnadsuträkning (3 objekt)")
-st.write("Ange parametrarna för tre objekt för att jämföra månadskostnader.")
+    # Placeholder for objektets namn
+    object_names = [st.text_input(f"Namn på objekt {i+1}", value=f"Objekt {i+1}") for i in range(num_objects)]
 
-# Dictionary för att lagra beräkningar som ska exporteras
-calculations = {}
+    # Skapa en sektion för varje objekt
+    for i in range(num_objects):
+        with st.expander(object_names[i], expanded=(i == 0)):
+            st.subheader(f"Ekonomisk information för {object_names[i]}")
 
-# Lista för räntesatserna i Objekt 1
-interest_rates_obj1 = [0] * 5
+            # Användaren anger priset på bostaden
+            total_price = st.number_input(f"Pris på bostaden för {object_names[i]} (SEK)", min_value=0, value=3000000, step=50000)
 
-# Inmatningsparametrar för tre objekt med utfällbara sektioner
-for i in range(1, 4):
-    with st.expander(f"Objekt {i}", expanded=(i == 1)):
-        # Anpassningsbart namn
-        custom_name = st.text_input(f"Namn för Objekt {i}", value=f"Objekt {i}")
+            # Slider för låneandel (0 - 85 %)
+            loan_percentage = st.slider(f"Låneandel av priset för {object_names[i]} (%)", min_value=0.0, max_value=85.0, value=85.0, step=0.1)
 
-        # Pris på bostaden
-        property_price = st.number_input(f"Pris på bostaden för {custom_name} (kr):", min_value=0, step=100000, key=f"price_{i}")
+            # Beräkning av lånebelopp baserat på låneandel och pris
+            loan_amount = total_price * (loan_percentage / 100)
+            st.write(f"Lånebelopp för {object_names[i]}: {loan_amount:.2f} SEK")
 
-        # Inmatningsfält för manuellt lånebelopp och låneandel (procent)
-        loan_amount_manual = st.number_input(f"Manuellt lånebelopp för {custom_name} (kr):", min_value=0, value=int(property_price * 0.85), step=10000, key=f"loan_amount_manual_{i}")
-        loan_percentage = st.slider(f"Låneandel av priset för {custom_name} (%)", min_value=0, max_value=85, value=int(loan_amount_manual / property_price * 100) if property_price > 0 else 85, key=f"loan_percentage_{i}")
+            # Beräkning av handpenning som skillnaden mellan pris och lånebelopp
+            down_payment = total_price - loan_amount
+            st.write(f"Handpenning för {object_names[i]}: {down_payment:.2f} SEK")
 
-        # Uppdatera låneandel baserat på manuellt inmatat lånebelopp
-        if loan_amount_manual != property_price * (loan_percentage / 100):
-            loan_percentage = min(85, max(0, int(loan_amount_manual / property_price * 100) if property_price > 0 else 0))
-
-        # Uppdatera manuellt lånebelopp baserat på procentuell låneandel
-        new_loan_amount = property_price * (loan_percentage / 100)
-        if loan_amount_manual != new_loan_amount:
-            loan_amount_manual = new_loan_amount
-
-        # Visa den synkroniserade lånedelen och låneandel
-        st.write(f"Lånedel för {custom_name}: {loan_amount_manual:,.2f} kr ({loan_percentage:.1f}%)")
-
-        # Beräkna och visa amortering automatiskt baserat på låneandel
-        amortization_auto = calculate_amortization(loan_percentage, loan_amount_manual)
-        amortization_input = st.number_input(f"Amortering för {custom_name} (kr/månad):", min_value=0, value=int(amortization_auto), step=100, key=f"amort_{i}")
-
-        # Månadsavgift
-        monthly_fee = st.number_input(f"Månadsavgift för {custom_name} (kr):", min_value=0, step=100, key=f"fee_{i}")
-
-        # Räntor för objektet - fem olika räntor på samma rad
-        st.write(f"Räntor för {custom_name} (%)")
-        cols = st.columns(5)
-        
-        # Bestäm räntesatser
-        if i == 1:
-            # Objekt 1 - låt användaren fylla i räntesatser
-            interest_rates_obj1 = [
-                cols[j].number_input(f"Ränta {j+1}", min_value=0.0, max_value=100.0, step=0.1, key=f"rate_{i}_{j}")
-                for j in range(5)
-            ]
-        else:
-            # Kopiera räntesatserna från Objekt 1 som standardvärden, men låt användaren redigera dem
+            # Räntor - visas på en rad
+            st.write("## Räntor (%)")
+            col1, col2, col3, col4, col5 = st.columns(5)
             interest_rates = [
-                cols[j].number_input(f"Ränta {j+1}", min_value=0.0, max_value=100.0, value=interest_rates_obj1[j], step=0.1, key=f"rate_{i}_{j}")
-                for j in range(5)
+                col1.number_input(f"Ränta 1", min_value=0.0, max_value=100.0, value=3.0, step=0.1),
+                col2.number_input(f"Ränta 2", min_value=0.0, max_value=100.0, value=3.0, step=0.1),
+                col3.number_input(f"Ränta 3", min_value=0.0, max_value=100.0, value=3.0, step=0.1),
+                col4.number_input(f"Ränta 4", min_value=0.0, max_value=100.0, value=3.0, step=0.1),
+                col5.number_input(f"Ränta 5", min_value=0.0, max_value=100.0, value=3.0, step=0.1)
             ]
 
-        # Beräkna och spara resultaten
-        calculations[custom_name] = []
-        for j, rate in enumerate(interest_rates_obj1 if i == 1 else interest_rates, start=1):
-            total_cost_before_tax, total_cost_after_tax = calculate_monthly_cost(loan_amount_manual, rate, monthly_fee, amortization_input)
-            calculations[custom_name].append({
-                "Ränta": rate,
-                "Totalkostnad (före skatteavdrag)": total_cost_before_tax,
-                "Totalkostnad (efter skatteavdrag)": total_cost_after_tax
-            })
-            
-            # Visa beräkningar för varje ränta
-            st.write(f"### {custom_name} - Ränta {j}: {rate}%")
-            st.write(f"Totalkostnad per månad (före skatteavdrag): {total_cost_before_tax:,.2f} kr")
-            st.write(f"Totalkostnad per månad (efter skatteavdrag): {total_cost_after_tax:,.2f} kr")
-    st.write("---")
+            # Månatlig räntekostnad beräknas för varje ränta
+            monthly_interest_costs = [(loan_amount * (rate / 100)) / 12 for rate in interest_rates]
 
-# PDF-genereringsfunktion
-def generate_pdf(calculations):
-    buffer = BytesIO()
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    pdf.setFont("Helvetica", 10)
-    y_position = 800  # Startposition på PDF-sidan
-    
-    for obj_name, rates in calculations.items():
-        pdf.drawString(30, y_position, f"{obj_name}:")
-        y_position -= 20
-        for rate_info in rates:
-            rate = rate_info["Ränta"]
-            cost_before_tax = rate_info["Totalkostnad (före skatteavdrag)"]
-            cost_after_tax = rate_info["Totalkostnad (efter skatteavdrag)"]
-            pdf.drawString(30, y_position, f"Ränta {rate}% - Före skatt: {cost_before_tax:,.2f} kr, Efter skatt: {cost_after_tax:,.2f} kr")
-            y_position -= 20
-            if y_position < 50:
-                pdf.showPage()
-                y_position = 800
+            st.write("### Månatliga kostnader:")
+            for j, rate in enumerate(interest_rates):
+                st.write(f"Ränta {j+1} ({rate}%): {monthly_interest_costs[j]:.2f} SEK per månad")
 
-        y_position -= 30  # Mellanrum mellan objekt
-    
-    pdf.save()
-    buffer.seek(0)
-    return buffer
+            # Månadsavgift
+            monthly_fee = st.number_input(f"Månadsavgift för {object_names[i]} (SEK)", min_value=0, value=4000, step=100)
 
-# Knapp för PDF-export
-if st.button("Ladda ner resultat som PDF"):
-    pdf_buffer = generate_pdf(calculations)
-    st.download_button(label="Ladda ner PDF", data=pdf_buffer, file_name="kostnadsutrakning.pdf", mime="application/pdf")
+            # Amorteringsbelopp baserat på låneandel
+            if loan_percentage > 70:
+                amortization = loan_amount * 0.02 / 12
+            elif loan_percentage > 50:
+                amortization = loan_amount * 0.01 / 12
+            else:
+                amortization = 0.0
+            st.write(f"Amortering per månad för {object_names[i]}: {amortization:.2f} SEK")
+
+            # Total månadskostnad före skatteavdrag
+            total_cost_pre_tax = [monthly_interest_cost + monthly_fee + amortization for monthly_interest_cost in monthly_interest_costs]
+            st.write("### Total månadskostnad (före skatteavdrag):")
+            for j, cost in enumerate(total_cost_pre_tax):
+                st.write(f"Med ränta {interest_rates[j]}%: {cost:.2f} SEK")
+
+            # Skatteavdrag (30 % på räntekostnaden)
+            tax_deduction = [monthly_interest_cost * 0.3 for monthly_interest_cost in monthly_interest_costs]
+
+            # Total månadskostnad efter skatteavdrag
+            total_cost_post_tax = [total_cost_pre_tax[j] - tax_deduction[j] for j in range(len(interest_rates))]
+            st.write("### Total månadskostnad (efter skatteavdrag):")
+            for j, cost in enumerate(total_cost_post_tax):
+                st.write(f"Med ränta {interest_rates[j]}%: {cost:.2f} SEK")
+
+if __name__ == "__main__":
+    main()
